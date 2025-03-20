@@ -89,36 +89,18 @@
         var sonucDiv = document.getElementById("sonuc");
         sonucDiv.innerHTML = "";
 
-        fetch("images/" + chartKodu)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("There is no such chart!");
-                }
-                return response.text();
-            })
-            .then(html => {
-                var parser = new DOMParser();
-                var doc = parser.parseFromString(html, "text/html");
-                var imgLinks = doc.querySelectorAll("a[href$='.jpg']");
+        // Belirli bir sayfa aralığını dene (örneğin 1-5)
+        for (let i = 1; i <= 5; i++) {
+            let img = document.createElement("img");
+            img.src = `https://onurmx2952.github.io/images/${chartKodu}/page${i}.jpg`;
 
-                if (imgLinks.length === 0) {
-                    sonucDiv.innerHTML = "Bu klasörde JPG dosyası bulunamadı!";
-                    return;
-                }
+            // Eğer resim yüklenemezse kaldır
+            img.onerror = () => img.remove();
 
-                imgLinks.forEach(link => {
-                    var img = document.createElement("img");
-                    img.src = "images/" + chartKodu + "/" + link.href.split("/").pop();
-                    sonucDiv.appendChild(img);
+            sonucDiv.appendChild(img);
 
-                    img.addEventListener("click", () => {
-                        openFullscreen(img.src);
-                    });
-                });
-            })
-            .catch(error => {
-                sonucDiv.innerHTML = error.message;
-            });
+            img.addEventListener("click", () => openFullscreen(img.src));
+        }
     }
 
     function openFullscreen(src) {
@@ -173,6 +155,7 @@
         document.body.appendChild(fullscreenDiv);
     }
 </script>
+
 
 </body>
 </html>
