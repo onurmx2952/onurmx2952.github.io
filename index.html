@@ -89,18 +89,26 @@
         var sonucDiv = document.getElementById("sonuc");
         sonucDiv.innerHTML = "";
 
-        // Belirli bir sayfa aralığını dene (örneğin 1-5)
-        for (let i = 1; i <= 5; i++) {
+        let i = 1; // Sayfa numarası
+        function loadNextImage() {
             let img = document.createElement("img");
             img.src = `https://onurmx2952.github.io/images/${chartKodu}/page${i}.jpg`;
+            
+            img.onload = () => {
+                sonucDiv.appendChild(img);
+                img.addEventListener("click", () => openFullscreen(img.src));
+                i++;
+                loadNextImage(); // Bir sonraki resmi yükle
+            };
 
-            // Eğer resim yüklenemezse kaldır
-            img.onerror = () => img.remove();
-
-            sonucDiv.appendChild(img);
-
-            img.addEventListener("click", () => openFullscreen(img.src));
+            img.onerror = () => {
+                if (i === 1) {
+                    sonucDiv.innerHTML = "Bu klasörde JPG dosyası bulunamadı!";
+                }
+            };
         }
+
+        loadNextImage(); // İlk resmi yüklemeye başla
     }
 
     function openFullscreen(src) {
@@ -155,6 +163,7 @@
         document.body.appendChild(fullscreenDiv);
     }
 </script>
+
 
 
 </body>
