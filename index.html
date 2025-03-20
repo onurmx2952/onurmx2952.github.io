@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Charts</title>
+	
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        #sonuc {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 3px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 3px;
+        }
+        #sonuc img {
+            width: 280px;
+            height: auto;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            object-fit: contain;
+        }
+        #sonuc img:hover {
+            transform: scale(1.1);
+        }
+        .fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            overflow: hidden;
+        }
+        .fullscreen img {
+            max-width: 100%;
+            max-height: 100%;
+            cursor: grab;
+            position: absolute;
+        }
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+            z-index: 1001;
+            background: rgba(128, 128, 128, 0.5);
+            padding: 10px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        input, button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<input type="text" id="chartKodu" maxlength="4" placeholder="ICAO Code" oninput="this.value = this.value.toUpperCase()">
+<button onclick="chartGoster()">Show</button>
+
+<div id="sonuc"></div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const lastViewedImage = localStorage.getItem("lastViewedImage");
+        if (lastViewedImage) {
+            openFullscreen(lastViewedImage);
+        }
+    });
+
+    function chartGoster() {
+        var chartKodu = document.getElementById("chartKodu").value.toUpperCase();
+        var sonucDiv = document.getElementById("sonuc");
+        sonucDiv.innerHTML = "";
+
+        fetch("images/" + chartKodu)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("There is no such chart!");
+                }
+                return response.text();
+            })
+            .then(html => {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, "text/html");
+                var imgLinks = doc.querySelectorAll("a[href$='.jpg']");
+
+                if (imgLinks.length === 0) {
+                    sonucDiv.innerHTML = "Bu klasörde JPG dosyası bulunamadı!";
+                    return;
+                }
+
+                imgLinks.forEach(link => {
+                    var img = document.createElement("img");
+                    img.src = "images/" + chartKodu + "/" + link.href.split("/").pop();
+                    sonucDiv.appendChild(img);
+
+                    img.addEventListener("click", () => {
+                        openFullscreen(img.src);
+                    });
+                });
+            })
+            .catch(error => {
+                sonucDiv.innerHTML = error.message;
+            });
+    }
+
+    function openFullscreen(src) {
+        localStorage.setItem("lastViewedImage", src);
+        
+        const fullscreenDiv = document.createElement("div");
+        fullscreenDiv.className = "fullscreen";
+
+        const fullscreenImg = document.createElement("img");
+        fullscreenImg.src = src;
+        fullscreenDiv.appendChild(fullscreenImg);
+
+        const closeBtn = document.createElement("span");
+        closeBtn.className = "close-btn";
+        closeBtn.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6l12 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        closeBtn.addEventListener("click", () => {
+            document.body.removeChild(fullscreenDiv);
+            localStorage.removeItem("lastViewedImage");
+        });
+        fullscreenDiv.appendChild(closeBtn);
+
+        let scale = 1, posX = 0, posY = 0;
+        let isDragging = false, startX, startY;
+
+        fullscreenImg.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            startX = e.clientX - posX;
+            startY = e.clientY - posY;
+            fullscreenImg.style.cursor = "grabbing";
+        });
+
+        window.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            posX = e.clientX - startX;
+            posY = e.clientY - startY;
+            fullscreenImg.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+        });
+
+        window.addEventListener("mouseup", () => {
+            isDragging = false;
+            fullscreenImg.style.cursor = "grab";
+        });
+
+        fullscreenDiv.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            let delta = e.deltaY > 0 ? 0.9 : 1.1;
+            scale *= delta;
+            scale = Math.max(0.5, Math.min(scale, 3));
+            fullscreenImg.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+        });
+
+        document.body.appendChild(fullscreenDiv);
+    }
+</script>
+
+</body>
+</html>
